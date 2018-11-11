@@ -20,8 +20,8 @@ via the aymmetric RSA.
 
 gcd :: Int -> Int -> Int
 gcd m n
-  | n == 0 = m
-  | otherwise = gcd n (mod m n)
+    | n == 0 = m
+    | otherwise = gcd n (mod m n)
 
 --
 -- I was attempting to use this following helper function method to return gcd m n, 
@@ -40,28 +40,10 @@ gcd m n
 
 
 phi :: Int -> Int
-phi m = length([n | n <- [1..m], gcd m n == 1])
+phi m 
+    = length([n | n <- [1..m], 
+                     gcd m n == 1])
 
---
--- Calculates (u, v, d) the gcd (d) and Bezout coefficients (u and v) 
--- such that au + bv = d
--- Pre: a, b > 0
--- Unsuccessful attempts at solving this led me to discover that there is a specification for this exercise...
-extendedGCD :: Int -> Int -> ((Int, Int), Int)
-extendedGCD a b
-    | b == 0 = ((1, 0), d)
-    | otherwise = ((v', (u' - (q * v'))), d)
-    where
-        d = gcd a b
-        (q, r) = quotRem a b
-        ((u', v'), _) = extendedGCD b (mod a b)
-        
--- Inverse of a modulo m
-inverse :: Int -> Int -> Int
-inverse a m
-    = b
-    where
-        ((b, b'), d) = extendedGCD a m
 
 -- Calculates (a^k mod m)
 -- Pre: k >= 0
@@ -74,6 +56,29 @@ modPow a k m
     where
         a' = mod a m
   
+
+--
+-- Calculates (u, v, d) the gcd (d) and Bezout coefficients (u and v) 
+-- such that au + bv = d
+-- Pre: a, b > 0
+extendedGCD :: Int -> Int -> ((Int, Int), Int)
+extendedGCD a b
+    | b == 0 = ((1, 0), d)
+    | otherwise = ((v', (u' - (q * v'))), d)
+      where
+        d = gcd a b
+        (q, r) = quotRem a b
+        ((u', v'), _) = extendedGCD b (mod a b)
+        
+-- Inverse of a modulo m
+inverse :: Int -> Int -> Int
+inverse a m
+    | b < 0     = m + b 
+    | otherwise = b
+      where
+        ((b, _), _) = extendedGCD a m
+
+
 -- Returns the smallest integer that is coprime with phi
 -- Pre: phi >= 1
 smallestCoPrimeOf :: Int -> Int
@@ -81,6 +86,7 @@ smallestCoPrimeOf phi
     = x
     where 
         x : xs = [m | m <- [2..(phi+1)], gcd m phi == 1]
+
 
 -- Generates keys pairs (public, private) = ((e, n), (d, n))
 -- given two "large" distinct primes, p and q
@@ -91,15 +97,18 @@ genKeys p q
         n = p * q
         n' = (p - 1) * (q - 1)
         e = smallestCoPrimeOf n'
-        d = n' - inverse e n'
+        d = inverse e n'
+
 
 -- RSA encryption/decryption; (e, n) is the public key
 rsaEncrypt :: Int -> (Int, Int) -> Int
-rsaEncrypt m (e, n) = mod (m ^ e) n
+rsaEncrypt m (e, n) 
+    = modPow m e n 
 
 
 rsaDecrypt :: Int -> (Int, Int) -> Int
-rsaDecrypt c (d, n) = mod (c ^ d) n
+rsaDecrypt c (d, n)
+    = modPow c d n
 
 
 -------------------------------------------------------------------------------
@@ -123,10 +132,11 @@ add a b
 -- "substracts" two letters
 substract :: Char -> Char -> Char
 substract a b
-    | a == b = 'a'
-    | a > b = chr (ord a - toInt b)
-    | a < b = chr ((ord a - toInt b) + 26)
-
+    | c == 0 = 'a'
+    | c > 0  = chr c
+    | c < 0  = chr (c + 26)
+      where
+        c = ord b - toInt a
 -- the next functions present
 -- 2 modes of operation for block ciphers : ECB and CBC
 -- based on a symmetric encryption function e/d such as "add"
@@ -139,7 +149,6 @@ ecbEncrypt key m
     | otherwise = add key m' : ecbEncrypt key ms
     where
         (m' : ms) = m
-
 
 
 ecbDecrypt :: Char -> String -> String
